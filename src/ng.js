@@ -29,14 +29,18 @@ define(function () {
 				var contexts = window.require.s.contexts;
 				for (var i in contexts) {
 					var registry = contexts[i].registry;
-					for (var k in ngModule.serviceMap) {
-						for (var z = registry[k].depMaps.length - 1; z >= 0; z--) {
-							var depMap = registry[k].depMaps[z];
-							if (depMap.name === name){
-								moduleName = depMap.parentMap.name;
-								break;
-								break;
-								break;
+					if (registry) {
+						for (var k in ngModule.serviceMap) {
+							if (registry[k] && registry[k].depMaps) {
+								for (var z = registry[k].depMaps.length - 1; z >= 0; z--) {
+									var depMap = registry[k].depMaps[z];
+									if (depMap.name === name){
+										moduleName = depMap.parentMap.name;
+										break;
+										break;
+										break;
+									}
+								}
 							}
 						}
 					}
@@ -52,14 +56,14 @@ define(function () {
 						obj, dependencies, fn, moduleIsArray = angular.isArray(module);
 
 					if (moduleIsArray) {
-						obj = module[module.length];
+						obj = module[module.length-1];
 						dependencies = module.slice(0, module.length-1);
 					} else {
 						obj = module;
 						dependencies = module.$inject;
 					}
 
-					if (obj.$get){
+					if (obj && obj.$get){
 						fn = undefined;
 					} else if (typeof obj === 'function') {
 						fn = obj;
@@ -73,13 +77,28 @@ define(function () {
 						fn(angluarModule);
 						onLoad(module);
 					} else if (dependencies) {
-						parentRequire(dependencies, function() {
+						var dependenciesToLoad = [], dependencyToLoadIndexs = {};
+						for (var i = dependencies.length - 1; i >= 0; i--) {
+							if (dependencies[i].indexOf('!') > -1)
+							{
+								dependenciesToLoad.push(dependencies[i]);
+								dependenciesToLoad
+							}
+						};
+						parentRequire(dependenciesToLoad, function() {
 							for (var i = dependencies.length - 1; i >= 0; i--) {
 								if (moduleIsArray)
 									module[i] = dependencies[i];
 								else if (module.$inject)
 									module.$inject[i] = dependencies[i];
 							};
+
+							if (fn && dependencies) {
+								angluarModule.factory(dependencyName, module);
+							} else if (obj && dependencies) {
+								angluarModule.provider(dependencyName, module);
+							}
+
 							onLoad(module);
 						});
 					} else {

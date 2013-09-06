@@ -6,6 +6,10 @@ for (var file in window.__karma__.files) {
     }
 }
 
+window.mocha.setup({
+  timeout: 10000
+});
+
 requirejs.config({
     baseUrl: 'base/src',
     paths: {

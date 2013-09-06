@@ -1,15 +1,15 @@
 define(['lodash', 'ng-module'], function(_, ngBootstrap){
 	describe('ng-module', function() {
-		// it('should load dependent modules', function(done) {
-		// 	var injector;
+		it('should load dependent modules', function(done) {
+			var injector;
 
-		// 	require(['ng-module!example/module1'], function(module) {
-		// 		injector = angular.injector(['example/module1']);
-		// 		expect(injector.get('example/module2/helloworld')).to.be.equal('hello world!');
+			require(['ng-module!example/module1'], function(module) {
+				injector = angular.injector(['example/module1']);
+				expect(injector.get('example/module2/helloworld')).to.be.equal('hello world!');
 
-		// 		done();
-		// 	});
-		// });
+				done();
+			});
+		});
 
 		it('should load package dependent modules', function(done) {
 			var injector;
