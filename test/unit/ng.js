@@ -21,5 +21,25 @@ define(['lodash', 'ng', 'angular-mocks'], function(_){
 				done();
 			})
 		});
+
+		it('should load and inject factory services  with dependencies', function(done) {
+			var injector;
+			require(['ng!example/ng/factory2'], function() {
+				injector = angular.injector(['app']);
+				expect(injector.get('example/ng/factory2')).to.be.equal('factory2');
+
+				done();
+			})
+		});
+
+		it('should load and inject provider services with dependencies', function(done) {
+			var injector;
+			require(['ng!example/ng/provider2'], function() {
+				injector = angular.injector(['app']);
+				expect(injector.get('example/ng/provider2')).to.be.equal('provider2');
+
+				done();
+			})
+		});
 	});
 });

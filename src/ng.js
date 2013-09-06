@@ -10,11 +10,46 @@ define(function () {
 
 	function parseParts(name) {	return name.split('|'); }
 	function unwrapModule(name, module) { return (typeof module == 'function' ? module(name) : module); }
+    function count(string, subString, allowOverlapping){
+        string+='';
+        subString+='';
+        if(subString.length<=0) 
+            return string.length+1;
 
-	function pickModuleName()
-	{
+        var n=0, pos=0;
+        var step=(allowOverlapping)?(1):(subString.length);
 
-	}
+        while(true){
+            pos=string.indexOf(subString,pos);
+            if(pos>=0){ n++; pos+=step; } else break;
+        }
+        return(n);
+    }
+
+    function normalizeModule(parentName, name, isPackage) {
+        var parts = name.split('!'),
+            parentDir = parentName.split('/'),
+            parentDir = parentDir.slice(0, parentDir.length- ( isPackage ? 0 : 1 )).join('/'),
+            newName = parts[1];
+
+        if (newName.indexOf('../') > -1) {
+            backSteps = count(newName, '../');
+            var parentParts = parentDir.split('/');
+            parentDir = parentParts.slice(0, parentParts.length - backSteps + 1).join('/');
+
+            newName = (parentDir ? parentDir + '/' : '') + newName.replace(/\.\.\//gi, '');
+        }
+
+        if (newName.indexOf('./') === 0) {
+            newName = parentDir + '/' + newName.substring(2);
+        }
+
+        return parts[0] + '!' + newName;
+    }
+
+    function endsWith(str, suffix) {
+        return str.indexOf(suffix, str.length - suffix.length) !== -1;
+    }
 
     return {
         load: function (name, parentRequire, onLoad, config) {
@@ -26,6 +61,9 @@ define(function () {
 	        		moduleName = parts[1] || unwrapModule(dependencyName, config.module) || 'app',
 	        		angular = window.angular;
 
+				var dependencyUrl = parentRequire.toUrl(dependencyName);
+        		var isPackage = !endsWith(dependencyUrl, dependencyName);
+
 				var contexts = window.require.s.contexts;
 				for (var i in contexts) {
 					var registry = contexts[i].registry;
@@ -36,8 +74,6 @@ define(function () {
 									var depMap = registry[k].depMaps[z];
 									if (depMap.name === name){
 										moduleName = depMap.parentMap.name;
-										break;
-										break;
 										break;
 									}
 								}
@@ -77,22 +113,21 @@ define(function () {
 						fn(angluarModule);
 						onLoad(module);
 					} else if (dependencies) {
-						var dependenciesToLoad = [], dependencyToLoadIndexs = {};
+						var newDeps = [];
 						for (var i = dependencies.length - 1; i >= 0; i--) {
-							if (dependencies[i].indexOf('!') > -1)
-							{
-								dependenciesToLoad.push(dependencies[i]);
-								dependenciesToLoad
-							}
+							var normalizedName = normalizeModule(dependencyName, 'ng!' + dependencies[i], isPackage);
+							if (moduleIsArray)
+								module[i] = normalizedName.split('!')[1];
+							else
+								module.$inject[i] = normalizedName.split('!')[1];
+							
+							var d = dependencies[i];
+							if (d.indexOf('!') > -1)
+								newDeps.push(d);
+							else
+								newDeps.push(normalizedName);
 						};
-						parentRequire(dependenciesToLoad, function() {
-							for (var i = dependencies.length - 1; i >= 0; i--) {
-								if (moduleIsArray)
-									module[i] = dependencies[i];
-								else if (module.$inject)
-									module.$inject[i] = dependencies[i];
-							};
-
+						parentRequire(newDeps, function() {
 							if (fn && dependencies) {
 								angluarModule.factory(dependencyName, module);
 							} else if (obj && dependencies) {
