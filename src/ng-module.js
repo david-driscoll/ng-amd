@@ -59,6 +59,7 @@ define(function () {
 
             var dependencyUrl = parentRequire.toUrl(dependencyName);
             var isPackage = !endsWith(dependencyUrl, dependencyName);
+            ngModule.serviceMap[dependencyName] = dependencyName;
 
             if (!angular)
                 require(['angular'], function (_angular) { angular = _angular; doLoad(); });
