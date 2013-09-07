@@ -26,7 +26,7 @@ define(['lodash', 'ng', 'angular-mocks'], function(_){
 			var injector;
 			require(['ng!example/ng/factory2'], function() {
 				injector = angular.injector(['app']);
-				expect(injector.get('example/ng/factory2')).to.be.equal('factory2');
+				expect(injector.get('example/ng/factory2')).to.be.equal('factory2abc');
 
 				done();
 			})
@@ -36,7 +36,7 @@ define(['lodash', 'ng', 'angular-mocks'], function(_){
 			var injector;
 			require(['ng!example/ng/provider2'], function() {
 				injector = angular.injector(['app']);
-				expect(injector.get('example/ng/provider2')).to.be.equal('provider2');
+				expect(injector.get('example/ng/provider2')).to.be.equal('provider2def');
 
 				done();
 			})

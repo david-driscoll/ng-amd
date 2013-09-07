@@ -1,5 +1,5 @@
-define([], function() {
-	return ['./factory', function() {
-		return 'factory2';
+define(['ng!./factory'], function() {
+	return ['./factory', function(factory) {
+		return 'factory2' + factory;
 	}];
 })

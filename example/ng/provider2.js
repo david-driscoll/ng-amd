@@ -1,6 +1,6 @@
 define([], function() {
-	var fn = function($q) {
-		return 'provider2';
+	var fn = function(provider) {
+		return 'provider2' + provider;
 	};
 
 	fn.$inject = ['./provider'];

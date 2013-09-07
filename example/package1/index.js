@@ -1,3 +1,3 @@
-define([], function() {
-	return ['ng-module!./module1', 'ng-module!./module2', 'ng-module!../module1'];
+define(['ng-module!./module1', 'ng-module!./module2'], function() {
+	return [];
 });

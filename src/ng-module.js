@@ -5,8 +5,13 @@
 *   ng-module!name
 *   
 */
-define(function () {
+define([], function () {
+//var angular;
+
+
+
 	var regex = /^ng([a-z\-\n]*?)!/i;
+
 	function parseParts(name) {	return name.split('|'); }
 	function unwrapModule(name, module) { return (typeof module == 'function' ? module(name) : module); }
     function count(string, subString, allowOverlapping){
@@ -34,7 +39,7 @@ define(function () {
         if (newName.indexOf('../') > -1) {
             backSteps = count(newName, '../');
             var parentParts = parentDir.split('/');
-            parentDir = parentParts.slice(0, parentParts.length - backSteps + 1).join('/');
+            parentDir = parentParts.slice(0, parentParts.length - backSteps).join('/');
 
             newName = (parentDir ? parentDir + '/' : '') + newName.replace(/\.\.\//gi, '');
         }
@@ -50,56 +55,179 @@ define(function () {
         return str.indexOf(suffix, str.length - suffix.length) !== -1;
     }
 
+    function isArray(value) {
+        return toString.apply(value) == '[object Array]';
+    }
+
+    function isFunction(value){return typeof value == 'function';}
+
+    var fs, getXhr,
+        progIds = ['Msxml2.XMLHTTP', 'Microsoft.XMLHTTP', 'Msxml2.XMLHTTP.4.0'],
+        fetchText = function () {
+            throw new Error('Environment unsupported.');
+        },
+        buildMap = {};
+
+    if (typeof process !== "undefined" &&
+               process.versions &&
+               !!process.versions.node) {
+        //Using special require.nodeRequire, something added by r.js.
+        fs = require.nodeRequire('fs');
+        fetchText = function (path, callback) {
+            callback(fs.readFileSync(path, 'utf8'));
+        };
+    } else if ((typeof window !== "undefined" && window.navigator && window.document) || typeof importScripts !== "undefined") {
+        // Browser action
+        getXhr = function () {
+            //Would love to dump the ActiveX crap in here. Need IE 6 to die first.
+            var xhr, i, progId;
+            if (typeof XMLHttpRequest !== "undefined") {
+                return new XMLHttpRequest();
+            } else {
+                for (i = 0; i < 3; i += 1) {
+                    progId = progIds[i];
+                    try {
+                        xhr = new ActiveXObject(progId);
+                    } catch (e) {}
+
+                    if (xhr) {
+                        progIds = [progId];  // so faster next time
+                        break;
+                    }
+                }
+            }
+
+            if (!xhr) {
+                throw new Error("getXhr(): XMLHttpRequest not available");
+            }
+
+            return xhr;
+        };
+
+        fetchText = function (url, callback) {
+            var xhr = getXhr();
+            xhr.open('GET', url, true);
+            xhr.onreadystatechange = function (evt) {
+                //Do not explicitly handle errors, those should be
+                //visible via console output in the browser.
+                if (xhr.readyState === 4) {
+                    callback(xhr.responseText);
+                }
+            };
+            xhr.send(null);
+        };
+        // end browser.js adapters
+    } else if (typeof Packages !== 'undefined') {
+        //Why Java, why is this so awkward?
+        fetchText = function (path, callback) {
+            var stringBuffer, line,
+                encoding = "utf-8",
+                file = new java.io.File(path),
+                lineSeparator = java.lang.System.getProperty("line.separator"),
+                input = new java.io.BufferedReader(new java.io.InputStreamReader(new java.io.FileInputStream(file), encoding)),
+                content = '';
+            try {
+                stringBuffer = new java.lang.StringBuffer();
+                line = input.readLine();
+
+                // Byte Order Mark (BOM) - The Unicode Standard, version 3.0, page 324
+                // http://www.unicode.org/faq/utf_bom.html
+
+                // Note that when we use utf-8, the BOM should appear as "EF BB BF", but it doesn't due to this bug in the JDK:
+                // http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4508058
+                if (line && line.length() && line.charAt(0) === 0xfeff) {
+                    // Eat the BOM, since we've already found the encoding on this file,
+                    // and we plan to concatenating this buffer with others; the BOM should
+                    // only appear at the top of a file.
+                    line = line.substring(1);
+                }
+
+                stringBuffer.append(line);
+
+                while ((line = input.readLine()) !== null) {
+                    stringBuffer.append(lineSeparator);
+                    stringBuffer.append(line);
+                }
+                //Make sure we return a JavaScript string and not a Java string.
+                content = String(stringBuffer.toString()); //String
+            } finally {
+                input.close();
+            }
+            callback(content);
+        };
+    }
+
     var ngModule = {
         serviceMap: {},
-        load: function (name, parentRequire, onLoad, config) {
+        parseParts: parseParts,
+        endsWith: endsWith,
+        normalizeModule: normalizeModule,
+        unwrapModule: unwrapModule,
+        count: count,
+        isArray: isArray,
+        fetchText: fetchText,
+        load: function (name, localRequire, onLoad, config) {
         	var parts = parseParts(name),
-        		dependencyName = parts[0],
-        		angular = window.angular;
+        		dependencyName = parts[0];
 
-            var dependencyUrl = parentRequire.toUrl(dependencyName);
+            var dependencyUrl = localRequire.toUrl(dependencyName);
             var isPackage = !endsWith(dependencyUrl, dependencyName);
             ngModule.serviceMap[dependencyName] = dependencyName;
+            var angularModule
 
-            if (!angular)
-                require(['angular'], function (_angular) { angular = _angular; doLoad(); });
-            else
-                doLoad();
+            if (config.isBuild) {
+                var noop = function() {};
+                angularModule = {
+                    requires: [],
+                    animation: noop,
+                    config: noop,
+                    constant: noop,
+                    controller: noop,
+                    directive: noop,
+                    factory: noop,
+                    filter: noop,
+                    provider: noop,
+                    run: noop,
+                    service: noop,
+                    value: noop,
+                    name: dependencyName
+                };
+            } else {
+                angularModule = angular.module(dependencyName, []);
+            }   
+    		fetchText(localRequire.toUrl(dependencyName) + '.js', function(moduleText) {
 
-            function doLoad() {
-                var deps = [dependencyName],
-                    angularModule = angular.module(dependencyName, []);
-
-        		parentRequire(deps, function(module) {
-
-    				var isArray = angular.isArray(module);
-
-                    if (isArray)
-                        angularModule.requires.push.apply(angularModule.requires, module);
-    				if (angular.isFunction(module))
-    					module(angularModule);
-
-    				var deps = [];
-    				if (angularModule.requires)	{
-    					angular.forEach(angularModule.requires, function(x, i)	{
-    						if (x.indexOf('ng-module!') === 0) {
-                                var normalizedName = normalizeModule(dependencyName, x, isPackage);
-                                angularModule.requires[i] = normalizedName.split('!')[1];
-                                ngModule.serviceMap[angularModule.requires[i]] = angularModule.requires[i];
-    							deps.push(normalizedName);
-    						}
-    					});
-    				}
-
-    				if (deps.length)
-    					require(deps, function() {
-    						onLoad(angularModule);
-    					});
-    				else 
-    					onLoad(angularModule);
-        		});
-            }
+                var depsMatch = moduleText.match(/define\(.*?\[(.*?)\]/i);
+                if (depsMatch && depsMatch[1]) {
+                    var depsText = depsMatch[1];
+                    var deps = depsText.replace(/['|"|\s]/ig, '').split(',');
+                    for (var i = deps.length - 1; i >= 0; i--) {
+                        var dep = deps[i];
+                        if (dep.indexOf('ng-module!') === -1){
+                            deps.splice(i, 1);
+                        } else {
+                            var normalizedName = normalizeModule(dependencyName, dep, isPackage);
+                            deps[i] = normalizedName;
+                            angularModule.requires.push(normalizedName.split('!')[1]);
+                        }
+                    };
+                    localRequire(deps, function () {
+                        ngModule.finishLoad(localRequire, name, angularModule, onLoad);
+                    });
+                } else {
+                    ngModule.finishLoad(localRequire, name, angularModule, onLoad);
+                }
+            });
+            
         },
+        finishLoad: function(localRequire, name, angularModule, onLoad) {
+            localRequire([name], function(module) {
+                    if (isFunction(module))
+                        module(angularModule);
+
+                    onLoad(angularModule);
+                });
+        },        
         normalize: function (name, normalize) {
     		var parts = parseParts(name);
     		for (var i = parts.length - 1; i >= 0; i--) {
@@ -107,8 +235,8 @@ define(function () {
     		};
     		return parts.join('|');
         },
-        write: function (pluginName, moduleName, write, config) {
-            throw new Error('NYI!');
+        writeFile: function (pluginName, moduleName, write, config) {
+            console.log('ng-module!write');
         }
     };
 
