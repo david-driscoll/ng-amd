@@ -64,17 +64,32 @@ define(function () {
 				var dependencyUrl = parentRequire.toUrl(dependencyName);
         		var isPackage = !endsWith(dependencyUrl, dependencyName);
 
-				var contexts = window.require.s.contexts;
-				for (var i in contexts) {
-					var registry = contexts[i].registry;
-					if (registry) {
-						for (var k in ngModule.serviceMap) {
-							if (registry[k] && registry[k].depMaps) {
-								for (var z = registry[k].depMaps.length - 1; z >= 0; z--) {
-									var depMap = registry[k].depMaps[z];
-									if (depMap.name === name){
-										moduleName = depMap.parentMap.name;
-										break;
+        		var inferedParent = false;
+        		//ngModule.serviceMap
+        		var parts = dependencyName.split('/');
+        		for (var i = parts.length - 2; i >= 0; i--) {
+        			var potentialParent = parts.slice(0, i+1).join('/');
+        			if (ngModule.serviceMap[potentialParent])
+        			{
+        				moduleName = potentialParent;
+    					inferedParent = true;
+    					break;
+        			}
+        		}
+
+    			if (!inferedParent) {
+					var contexts = window.require.s.contexts;
+					for (var i in contexts) {
+						var registry = contexts[i].registry;
+						if (registry) {
+							for (var k in ngModule.serviceMap) {
+								if (registry[k] && registry[k].depMaps) {
+									for (var z = registry[k].depMaps.length - 1; z >= 0; z--) {
+										var depMap = registry[k].depMaps[z];
+										if (depMap.name === name){
+											moduleName = depMap.parentMap.name;
+											break;
+										}
 									}
 								}
 							}
