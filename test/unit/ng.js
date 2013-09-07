@@ -22,7 +22,7 @@ define(['lodash', 'ng', 'angular-mocks'], function(_){
 			})
 		});
 
-		it('should load and inject factory services  with dependencies', function(done) {
+		it('should load and inject factory services with dependencies', function(done) {
 			var injector;
 			require(['ng!example/ng/factory2'], function() {
 				injector = angular.injector(['app']);

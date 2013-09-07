@@ -139,7 +139,7 @@ define(function () {
 							var d = dependencies[i];
 							if (d.indexOf('!') > -1)
 								newDeps.push(d);
-							else
+							else if (d.indexOf('/') > -1)
 								newDeps.push(normalizedName);
 						};
 						parentRequire(newDeps, function() {
