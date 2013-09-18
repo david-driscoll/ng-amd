@@ -1,4 +1,4 @@
-define([], function() {
+define(['ng!./provider'], function() {
 	var fn = function(provider) {
 		return 'provider2' + provider;
 	};

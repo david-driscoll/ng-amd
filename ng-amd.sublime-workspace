@@ -1,0 +1,749 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"de",
+				"dependencyName"
+			],
+			[
+				"ang",
+				"angularModule"
+			],
+			[
+				"for",
+				"for	for (…) {…} (Improved Native For-Loop)"
+			],
+			[
+				"deps",
+				"deps"
+			],
+			[
+				"dep",
+				"depsText"
+			],
+			[
+				"mod",
+				"moduleText"
+			],
+			[
+				"par",
+				"parentRequire"
+			],
+			[
+				"un",
+				"unwrapModule"
+			],
+			[
+				"normal",
+				"normalizedModule"
+			],
+			[
+				"an",
+				"angular"
+			],
+			[
+				"dependency",
+				"dependencyName"
+			],
+			[
+				"norm",
+				"normalizedName"
+			],
+			[
+				"angul",
+				"angluarModule"
+			],
+			[
+				"anu",
+				"angluarModule"
+			],
+			[
+				"ng",
+				"ngModule"
+			],
+			[
+				"agn",
+				"angularModule"
+			],
+			[
+				"nroa",
+				"normalizedName"
+			],
+			[
+				"parent",
+				"parentName"
+			],
+			[
+				"angular",
+				"angularModule"
+			],
+			[
+				"requ",
+				"requestHandler"
+			],
+			[
+				"req",
+				"requestHandler"
+			],
+			[
+				"module",
+				"moduleName"
+			],
+			[
+				"depe",
+				"dependencies"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"contents": "/**\n * Angular-module loader plugin\n */\ndefine([], function () {\n    var regex = /^ng([a-z\\-\\n]*?)!/i;\n\n    function parseParts(name) { return name.split('|'); }\n    function unwrapModule(name, module) { return (typeof module == 'function' ? module(name) : module); }\n    function count(string, subString, allowOverlapping){\n        string+='';\n        subString+='';\n        if(subString.length<=0) \n            return string.length+1;\n\n        var n=0, pos=0;\n        var step=(allowOverlapping)?(1):(subString.length);\n\n        while(true){\n            pos=string.indexOf(subString,pos);\n            if(pos>=0){ n++; pos+=step; } else break;\n        }\n        return(n);\n    }\n\n    function normalizeModule(parentName, name, isPackage) {\n        var parts = name.split('!'),\n            parentDir = parentName.split('/'),\n            parentDir = parentDir.slice(0, parentDir.length- ( isPackage ? 0 : 1 )).join('/'),\n            newName = parts[1];\n\n        if (newName.indexOf('../') > -1) {\n            backSteps = count(newName, '../');\n            var parentParts = parentDir.split('/');\n            parentDir = parentParts.slice(0, parentParts.length - backSteps).join('/');\n\n            newName = (parentDir ? parentDir + '/' : '') + newName.replace(/\\.\\.\\//gi, '');\n        }\n\n        if (newName.indexOf('./') === 0) {\n            newName = parentDir + '/' + newName.substring(2);\n        }\n\n        return parts[0] + '!' + newName;\n    }\n\n    function endsWith(str, suffix) { return str.indexOf(suffix, str.length - suffix.length) !== -1; }\n\n    function isArray(value) { return toString.apply(value) == '[object Array]'; }\n    function isFunction(value){return typeof value == 'function';}\n\n    var fs, getXhr,\n        progIds = ['Msxml2.XMLHTTP', 'Microsoft.XMLHTTP', 'Msxml2.XMLHTTP.4.0'],\n        fetchText = function () {\n            throw new Error('Environment unsupported.');\n        },\n        buildMap = {};\n\n    if (typeof process !== \"undefined\" &&\n               process.versions &&\n               !!process.versions.node) {\n        //Using special require.nodeRequire, something added by r.js.\n        fs = require.nodeRequire('fs');\n        fetchText = function (path, callback) {\n            callback(fs.readFileSync(path, 'utf8'));\n        };\n    } else if ((typeof window !== \"undefined\" && window.navigator && window.document) || typeof importScripts !== \"undefined\") {\n        // Browser action\n        getXhr = function () {\n            //Would love to dump the ActiveX crap in here. Need IE 6 to die first.\n            var xhr, i, progId;\n            if (typeof XMLHttpRequest !== \"undefined\") {\n                return new XMLHttpRequest();\n            } else {\n                for (i = 0; i < 3; i += 1) {\n                    progId = progIds[i];\n                    try {\n                        xhr = new ActiveXObject(progId);\n                    } catch (e) {}\n\n                    if (xhr) {\n                        progIds = [progId];  // so faster next time\n                        break;\n                    }\n                }\n            }\n\n            if (!xhr) {\n                throw new Error(\"getXhr(): XMLHttpRequest not available\");\n            }\n\n            return xhr;\n        };\n\n        fetchText = function (url, callback) {\n            var xhr = getXhr();\n            xhr.open('GET', url, true);\n            xhr.onreadystatechange = function (evt) {\n                //Do not explicitly handle errors, those should be\n                //visible via console output in the browser.\n                if (xhr.readyState === 4) {\n                    callback(xhr.responseText);\n                }\n            };\n            xhr.send(null);\n        };\n        // end browser.js adapters\n    } else if (typeof Packages !== 'undefined') {\n        //Why Java, why is this so awkward?\n        fetchText = function (path, callback) {\n            var stringBuffer, line,\n                encoding = \"utf-8\",\n                file = new java.io.File(path),\n                lineSeparator = java.lang.System.getProperty(\"line.separator\"),\n                input = new java.io.BufferedReader(new java.io.InputStreamReader(new java.io.FileInputStream(file), encoding)),\n                content = '';\n            try {\n                stringBuffer = new java.lang.StringBuffer();\n                line = input.readLine();\n\n                // Byte Order Mark (BOM) - The Unicode Standard, version 3.0, page 324\n                // http://www.unicode.org/faq/utf_bom.html\n\n                // Note that when we use utf-8, the BOM should appear as \"EF BB BF\", but it doesn't due to this bug in the JDK:\n                // http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4508058\n                if (line && line.length() && line.charAt(0) === 0xfeff) {\n                    // Eat the BOM, since we've already found the encoding on this file,\n                    // and we plan to concatenating this buffer with others; the BOM should\n                    // only appear at the top of a file.\n                    line = line.substring(1);\n                }\n\n                stringBuffer.append(line);\n\n                while ((line = input.readLine()) !== null) {\n                    stringBuffer.append(lineSeparator);\n                    stringBuffer.append(line);\n                }\n                //Make sure we return a JavaScript string and not a Java string.\n                content = String(stringBuffer.toString()); //String\n            } finally {\n                input.close();\n            }\n            callback(content);\n        };\n    }\n\n    var ngModule = {\n        serviceMap: {},\n        parseParts: parseParts,\n        endsWith: endsWith,\n        normalizeModule: normalizeModule,\n        unwrapModule: unwrapModule,\n        count: count,\n        isArray: isArray,\n        fetchText: fetchText,\n        load: function (name, localRequire, onLoad, config) {\n            var parts = parseParts(name),\n                dependencyName = parts[0],\n                moduleName = parts[1] || dependencyName;\n\n            var dependencyUrl = localRequire.toUrl(dependencyName);\n            var isPackage = !endsWith(dependencyUrl, dependencyName);\n            ngModule.serviceMap[dependencyName] = dependencyName;\n            var angularModule\n\n            if (config.isBuild) {\n                var noop = function() {};\n                angularModule = {\n                    requires: [],\n                    animation: noop,\n                    config: noop,\n                    constant: noop,\n                    controller: noop,\n                    directive: noop,\n                    factory: noop,\n                    filter: noop,\n                    provider: noop,\n                    run: noop,\n                    service: noop,\n                    value: noop,\n                    name: dependencyName\n                };\n            } else {\n                angularModule = angular.module(moduleName, []);\n                angularModule.dependencyName = dependencyName;\n            }   \n            fetchText(localRequire.toUrl(dependencyName + '.js'), function (moduleText) {\n\n                var depsMatch = moduleText.match(/define\\([\\s\\S]*?\\[([\\s\\S]*?)\\]/im);\n                if (depsMatch && depsMatch[1]) {\n                    var depsText = depsMatch[1];\n                    var deps = depsText.replace(/['|\"|\\s|\\n|\\r]/ig, '').split(',');\n                    for (var i = deps.length - 1; i >= 0; i--) {\n                        var dep = deps[i];\n                        if (dep.indexOf('ng-module!') === -1){\n                            deps.splice(i, 1);\n                        } else {\n                            var normalizedName = normalizeModule(dependencyName, dep, isPackage);\n                            deps[i] = normalizedName;\n                            angularModule.requires.push(normalizedName.split('!')[1]);\n                        }\n                    };\n                    localRequire(deps, function () {\n                        ngModule.finishLoad(localRequire, dependencyName, angularModule, onLoad);\n                    });\n                } else {\n                    ngModule.finishLoad(localRequire, dependencyName, angularModule, onLoad);\n                }\n            });\n            \n        },\n        finishLoad: function(localRequire, name, angularModule, onLoad) {\n            localRequire([name], function(module) {\n                    if (isFunction(module))\n                        module(angularModule);\n\n                    onLoad(angularModule);\n                });\n        },        \n        normalize: function (name, normalize) {\n            var parts = parseParts(name);\n            for (var i = parts.length - (parts.length > 1 ? 2 : 1); i >= 0; i--) {\n                parts[i] = normalize(parts[i]);\n            };\n            return parts.join('|');\n        },\n        writeFile: function (pluginName, moduleName, write, config) {\n            console.log('ng-module!write');\n        }\n    };\n\n    return ngModule;\n    //pluginBuilder: ''\n});\n",
+			"file": "src/ng-module.js",
+			"file_size": 9366,
+			"file_write_time": 130230697077104383,
+			"settings":
+			{
+				"buffer_size": 9049,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "test/unit/ng-module.js",
+			"settings":
+			{
+				"buffer_size": 702,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "example/package1/index.js",
+			"settings":
+			{
+				"buffer_size": 83,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "src/ng.js",
+			"settings":
+			{
+				"buffer_size": 4098,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "example/ng/provider.js",
+			"settings":
+			{
+				"buffer_size": 103,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "example/module2.js",
+			"settings":
+			{
+				"buffer_size": 137,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "example/ng/factory2.js",
+			"settings":
+			{
+				"buffer_size": 118,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "example/ng/factory.js",
+			"settings":
+			{
+				"buffer_size": 71,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "example/ng/provider2.js",
+			"settings":
+			{
+				"buffer_size": 153,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "test/unit/ng.js",
+			"settings":
+			{
+				"buffer_size": 1263,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "example/module1.js",
+			"settings":
+			{
+				"buffer_size": 109,
+				"line_ending": "Windows"
+			}
+		}
+	],
+	"build_system": "",
+	"command_palette":
+	{
+		"height": 35.0,
+		"selected_items":
+		[
+			[
+				"insta",
+				"Package Control: Install Package"
+			],
+			[
+				"pack	",
+				"Package Control: Discover Packages"
+			],
+			[
+				"",
+				"Package Control: Discover Packages"
+			],
+			[
+				"package control: insta",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 416.0
+	},
+	"console":
+	{
+		"height": 339.0,
+		"history":
+		[
+			"help",
+			"import urllib.request,os; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); open(os.path.join(ipp, pf), 'wb').write(urllib.request.urlopen( 'http://sublime.wbond.net/' + pf.replace(' ','%20')).read())"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/E/Development/Github/ng-amd/example/module1.js",
+		"/E/Development/Github/ng-amd/example/package1/index.js",
+		"/E/Development/Github/ng-amd/src/ng.js",
+		"/E/Development/Github/ng-amd/node_modules/requirejs/bin/r.js",
+		"/E/Development/Github/ng-amd/main-built.js",
+		"/E/Development/Github/ng-amd/build.js",
+		"/E/Development/Github/ng-amd/example/app.js",
+		"/E/Development/Github/ng-amd/bower.json",
+		"/E/Development/Github/ng-amd/example/ng/factory2.js",
+		"/E/Development/Github/ng-amd/test/unit/ng-module.js",
+		"/E/Development/Github/ng-amd/karma.conf.js",
+		"/E/Development/Github/ng-amd/test/test.require.config.js",
+		"/E/Development/Github/ng-amd/test/unit/ng.js",
+		"/E/Development/Github/ng-amd/example/ng/provider.js",
+		"/E/Development/Github/ng-amd/example/ng/factory.js",
+		"/E/Development/Github/ng-amd/example/ng/provider2.js",
+		"/E/Development/Github/ng-amd/bower_components/jquery/jquery.js",
+		"/E/Development/Github/ng-amd/bower_components/jquery/jquery.min.js",
+		"/E/Development/Github/ng-amd/bower_components/requirejs/docs/history.html",
+		"/E/Development/Github/ng-amd/src/builder/ng.js",
+		"/E/Development/Github/ng-amd/src/ng-inject.js",
+		"/E/Development/Github/ng-amd/test/unit/ng-bootstrap.js",
+		"/E/Development/Github/ng-amd/src/ng-bootstrap.js",
+		"/E/Development/Github/ng-amd/example/app-strap.js",
+		"/E/Development/Github/ng-amd/example/package2/index.js",
+		"/E/Development/Github/ng-amd/example/package1/module1.js",
+		"/E/Development/Github/ng-amd/example/package1/service/factory.js",
+		"/E/Development/Github/ng-amd/example/package1/service/provider.js",
+		"/E/Development/Github/ng-amd/example/package1/module2.js",
+		"/E/Development/Github/ng-amd/example/module2.js",
+		"/E/Development/Github/ng-amd/src/ng-module.js",
+		"/E/Development/Github/ng-amd/example/package2/module1.js",
+		"/E/Development/Github/ng-amd/example/package2/module2.js",
+		"/E/Development/Github/ng-amd/README.md",
+		"/E/Development/Github/ng-amd/package.json",
+		"/E/Development/Github/ng-amd/test/example/app.js",
+		"/C/Users/David/AppData/Roaming/Sublime Text 3/Packages/User/Default (Windows).sublime-keymap",
+		"/C/Users/David/AppData/Roaming/Sublime Text 3/Packages/Default/Default (Windows).sublime-keymap",
+		"/E/Development/Github/ng-amd/ng-amd.sublime-project",
+		"/E/Development/sciQuest/NGPrototype-remote/app/js/crusade/service/settings.js",
+		"/E/Development/sciQuest/NGPrototype-remote/app/js/crusade/urlRouter/route.js",
+		"/E/Development/sciQuest/NGPrototype-remote/app/js/crusade/urlRouter/router.js",
+		"/E/Development/sciQuest/NGPrototype-remote/app/js/crusade/util/format.js",
+		"/E/Development/sciQuest/NGPrototype-remote/app/js/crusade/util/boolean.js"
+	],
+	"find":
+	{
+		"height": 34.0
+	},
+	"find_in_files":
+	{
+		"height": 90.0,
+		"where_history":
+		[
+			""
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"parentRequire",
+			"$inject",
+			"angular.",
+			"buildMap",
+			"console.log",
+			"angluarModule",
+			"angularModule",
+			"moduleName",
+			"load.",
+			"fromtext",
+			"enableBuildCallback",
+			"logger",
+			"//logger",
+			"logger",
+			"log",
+			"window",
+			"angular.",
+			"isarray",
+			"angular.",
+			"angular",
+			"window",
+			"normalize",
+			"nromalize",
+			"makeWriteFile",
+			"write",
+			".write",
+			".wite",
+			"path, callback",
+			"function() {",
+			".call",
+			"moduleName",
+			"newContext",
+			"nameToUrl",
+			"package",
+			"normalize",
+			"= normalize",
+			"normalize",
+			"require",
+			"moduleName",
+			"item",
+			"{\n",
+			" }",
+			";\n",
+			"UrlRouter",
+			")        "
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"localRequire",
+			"angularModule",
+			"logger",
+			"localRequire, path, callback",
+			"module",
+			"UrlRoute"
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 0,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "src/ng-module.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 9049,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1329,
+								1329
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "test/unit/ng-module.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 702,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								507,
+								507
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "example/package1/index.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 83,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								52,
+								52
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "src/ng.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 4098,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2222,
+								2222
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 504.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "example/ng/provider.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 103,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 5,
+					"file": "example/module2.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 137,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								25,
+								25
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 6,
+					"file": "example/ng/factory2.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 118,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								76,
+								76
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 7,
+					"file": "example/ng/factory.js",
+					"semi_transient": true,
+					"settings":
+					{
+						"buffer_size": 71,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 8,
+					"file": "example/ng/provider2.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 153,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								12,
+								12
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 9,
+					"file": "test/unit/ng.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1263,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								885,
+								885
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 10,
+					"file": "example/module1.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 109,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								109,
+								109
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 22.0
+	},
+	"input":
+	{
+		"height": 31.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"project": "ng-amd.sublime-project",
+	"replace":
+	{
+		"height": 62.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 241.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}
