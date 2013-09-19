@@ -60,4 +60,5 @@ Angular must be manually bootstrapped, using ngApp is not easily possible, if lo
 
 Roadmap
 =======
-- Inejecting dependencies after angular has loaded, to support things like loading controllers, directives on the fly depending on a given route.
+- Injecting dependencies after angular has loaded, to support things like loading controllers, directives on the fly depending on a given route.
+- More comprehensive Unit Testing
