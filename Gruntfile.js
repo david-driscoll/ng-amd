@@ -23,58 +23,6 @@ module.exports = function(grunt) {
         src: 'src/ng-module.js',
         dest: 'dist/ng-module.min.js'
       },
-      'ng-optimized': {
-        options: {
-          mangle: false,
-          beautify: true,
-          compress: {
-            global_defs: {
-              'OPTIMIZE': true
-            },
-            dead_code: true
-          }
-        },
-        src: 'src/ng.js',
-        dest: 'dist/ng.optimized.js'
-      },
-      'ng-module-optimized': {
-        options: {
-          mangle: false,
-          beautify: true,
-          compress: {
-            global_defs: {
-              'OPTIMIZE': true
-            },
-            dead_code: true
-          }
-        },
-        src: 'src/ng-module.js',
-        dest: 'dist/ng-module.optimized.js'
-      },
-      'ng-optimized-min': {
-        options: {
-          compress: {
-            global_defs: {
-              'OPTIMIZE': true
-            },
-            dead_code: true
-          }
-        },
-        src: 'src/ng.js',
-        dest: 'dist/ng.optimized.min.js'
-      },
-      'ng-module-optimized-min': {
-        options: {
-          compress: {
-            global_defs: {
-              'OPTIMIZE': true
-            },
-            dead_code: true
-          }
-        },
-        src: 'src/ng-module.js',
-        dest: 'dist/ng-module.optimized.min.js'
-      }
     },
     jshint: {
       options: {
