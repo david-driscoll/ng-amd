@@ -11,10 +11,12 @@
     "url": "git://github.com/david-driscoll/ng-amd.git"
   },
   "author": "",
-  "license": [{
-    "type": "MIT",
-    "url": "http://opensource.org/licenses/MIT"
-  }],
+  "license": [
+    {
+      "type": "MIT",
+      "url": "http://opensource.org/licenses/MIT"
+    }
+  ],
   "bugs": {
     "url": "https://github.com/david-driscoll/ng-amd/issues"
   },
@@ -41,6 +43,7 @@
     "grunt": "~0.4.1",
     "grunt-contrib-concat": "~0.3.0",
     "grunt-contrib-jshint": "~0.6.4",
-    "grunt-karma": "~0.6.2"
+    "grunt-karma": "~0.6.2",
+    "grunt-contrib-copy": "~0.4.1"
   }
 }

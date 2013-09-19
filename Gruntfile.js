@@ -13,7 +13,7 @@ module.exports = function(grunt) {
       ' Licensed <%= _.pluck(pkg.licenses, "type").join(", ") %> */\n',
     uglify: {
       options: {
-        banner: '<%= banner %>'
+        banner: '<%= banner %>',
       },
       ng: {
         src: 'src/ng.js',
@@ -22,6 +22,58 @@ module.exports = function(grunt) {
       'ng-module': {
         src: 'src/ng-module.js',
         dest: 'dist/ng-module.min.js'
+      },
+      'ng-optimized': {
+        options: {
+          mangle: false,
+          beautify: true,
+          compress: {
+            global_defs: {
+              'OPTIMIZE': true
+            },
+            dead_code: true
+          }
+        },
+        src: 'src/ng.js',
+        dest: 'dist/ng.optimized.js'
+      },
+      'ng-module-optimized': {
+        options: {
+          mangle: false,
+          beautify: true,
+          compress: {
+            global_defs: {
+              'OPTIMIZE': true
+            },
+            dead_code: true
+          }
+        },
+        src: 'src/ng-module.js',
+        dest: 'dist/ng-module.optimized.js'
+      },
+      'ng-optimized-min': {
+        options: {
+          compress: {
+            global_defs: {
+              'OPTIMIZE': true
+            },
+            dead_code: true
+          }
+        },
+        src: 'src/ng.js',
+        dest: 'dist/ng.optimized.min.js'
+      },
+      'ng-module-optimized-min': {
+        options: {
+          compress: {
+            global_defs: {
+              'OPTIMIZE': true
+            },
+            dead_code: true
+          }
+        },
+        src: 'src/ng-module.js',
+        dest: 'dist/ng-module.optimized.min.js'
       }
     },
     jshint: {
@@ -35,6 +87,14 @@ module.exports = function(grunt) {
         src: ['src/**/*.js']
       }
     },
+    copy: {
+      dist: {
+        expand: true,
+        cwd: 'src/',
+        src: '**',
+        dest: 'dist/',
+      }
+    },
     karma: {
       unit: {
         configFile: 'karma.conf.js',
@@ -46,12 +106,13 @@ module.exports = function(grunt) {
 
   // These plugins provide necessary tasks.
   grunt.loadNpmTasks('grunt-contrib-concat');
+  grunt.loadNpmTasks('grunt-contrib-copy');
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-watch');
   grunt.loadNpmTasks('grunt-karma');
 
   // Default task.
-  grunt.registerTask('default', ['jshint', 'karma', 'uglify']);
+  grunt.registerTask('default', ['jshint', 'karma', 'copy', 'uglify']);
 
 };

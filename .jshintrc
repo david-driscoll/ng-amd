@@ -4,7 +4,7 @@
   // Documentation: http://www.jshint.com/docs/
   "browser": true,
   "esnext": true,
-  "globals": { "define": true, "require": true, "requirejs": true, "process": true, "ActiveXObject": true, "java": true, "angular": true, "grunt": true },
+  "globals": { "define": true, "require": true, "requirejs": true, "process": true, "ActiveXObject": true, "java": true, "angular": true, "grunt": true, "OPTIMIZE": true },
   "globalstrict": true,
   "quotmark": true,
   "smarttabs": true,
