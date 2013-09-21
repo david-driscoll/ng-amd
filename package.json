@@ -1,6 +1,6 @@
 {
   "name": "ng-amd",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "ng-amd",
   "main": "index.js",
   "scripts": {
