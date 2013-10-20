@@ -100,14 +100,27 @@
 	"buffers":
 	[
 		{
-			"contents": "/**\n * Angular-module loader plugin\n */\ndefine([], function () {\n    var regex = /^ng([a-z\\-\\n]*?)!/i;\n\n    function parseParts(name) { return name.split('|'); }\n    function unwrapModule(name, module) { return (typeof module == 'function' ? module(name) : module); }\n    function count(string, subString, allowOverlapping){\n        string+='';\n        subString+='';\n        if(subString.length<=0) \n            return string.length+1;\n\n        var n=0, pos=0;\n        var step=(allowOverlapping)?(1):(subString.length);\n\n        while(true){\n            pos=string.indexOf(subString,pos);\n            if(pos>=0){ n++; pos+=step; } else break;\n        }\n        return(n);\n    }\n\n    function normalizeModule(parentName, name, isPackage) {\n        var parts = name.split('!'),\n            parentDir = parentName.split('/'),\n            parentDir = parentDir.slice(0, parentDir.length- ( isPackage ? 0 : 1 )).join('/'),\n            newName = parts[1];\n\n        if (newName.indexOf('../') > -1) {\n            backSteps = count(newName, '../');\n            var parentParts = parentDir.split('/');\n            parentDir = parentParts.slice(0, parentParts.length - backSteps).join('/');\n\n            newName = (parentDir ? parentDir + '/' : '') + newName.replace(/\\.\\.\\//gi, '');\n        }\n\n        if (newName.indexOf('./') === 0) {\n            newName = parentDir + '/' + newName.substring(2);\n        }\n\n        return parts[0] + '!' + newName;\n    }\n\n    function endsWith(str, suffix) { return str.indexOf(suffix, str.length - suffix.length) !== -1; }\n\n    function isArray(value) { return toString.apply(value) == '[object Array]'; }\n    function isFunction(value){return typeof value == 'function';}\n\n    var fs, getXhr,\n        progIds = ['Msxml2.XMLHTTP', 'Microsoft.XMLHTTP', 'Msxml2.XMLHTTP.4.0'],\n        fetchText = function () {\n            throw new Error('Environment unsupported.');\n        },\n        buildMap = {};\n\n    if (typeof process !== \"undefined\" &&\n               process.versions &&\n               !!process.versions.node) {\n        //Using special require.nodeRequire, something added by r.js.\n        fs = require.nodeRequire('fs');\n        fetchText = function (path, callback) {\n            callback(fs.readFileSync(path, 'utf8'));\n        };\n    } else if ((typeof window !== \"undefined\" && window.navigator && window.document) || typeof importScripts !== \"undefined\") {\n        // Browser action\n        getXhr = function () {\n            //Would love to dump the ActiveX crap in here. Need IE 6 to die first.\n            var xhr, i, progId;\n            if (typeof XMLHttpRequest !== \"undefined\") {\n                return new XMLHttpRequest();\n            } else {\n                for (i = 0; i < 3; i += 1) {\n                    progId = progIds[i];\n                    try {\n                        xhr = new ActiveXObject(progId);\n                    } catch (e) {}\n\n                    if (xhr) {\n                        progIds = [progId];  // so faster next time\n                        break;\n                    }\n                }\n            }\n\n            if (!xhr) {\n                throw new Error(\"getXhr(): XMLHttpRequest not available\");\n            }\n\n            return xhr;\n        };\n\n        fetchText = function (url, callback) {\n            var xhr = getXhr();\n            xhr.open('GET', url, true);\n            xhr.onreadystatechange = function (evt) {\n                //Do not explicitly handle errors, those should be\n                //visible via console output in the browser.\n                if (xhr.readyState === 4) {\n                    callback(xhr.responseText);\n                }\n            };\n            xhr.send(null);\n        };\n        // end browser.js adapters\n    } else if (typeof Packages !== 'undefined') {\n        //Why Java, why is this so awkward?\n        fetchText = function (path, callback) {\n            var stringBuffer, line,\n                encoding = \"utf-8\",\n                file = new java.io.File(path),\n                lineSeparator = java.lang.System.getProperty(\"line.separator\"),\n                input = new java.io.BufferedReader(new java.io.InputStreamReader(new java.io.FileInputStream(file), encoding)),\n                content = '';\n            try {\n                stringBuffer = new java.lang.StringBuffer();\n                line = input.readLine();\n\n                // Byte Order Mark (BOM) - The Unicode Standard, version 3.0, page 324\n                // http://www.unicode.org/faq/utf_bom.html\n\n                // Note that when we use utf-8, the BOM should appear as \"EF BB BF\", but it doesn't due to this bug in the JDK:\n                // http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4508058\n                if (line && line.length() && line.charAt(0) === 0xfeff) {\n                    // Eat the BOM, since we've already found the encoding on this file,\n                    // and we plan to concatenating this buffer with others; the BOM should\n                    // only appear at the top of a file.\n                    line = line.substring(1);\n                }\n\n                stringBuffer.append(line);\n\n                while ((line = input.readLine()) !== null) {\n                    stringBuffer.append(lineSeparator);\n                    stringBuffer.append(line);\n                }\n                //Make sure we return a JavaScript string and not a Java string.\n                content = String(stringBuffer.toString()); //String\n            } finally {\n                input.close();\n            }\n            callback(content);\n        };\n    }\n\n    var ngModule = {\n        serviceMap: {},\n        parseParts: parseParts,\n        endsWith: endsWith,\n        normalizeModule: normalizeModule,\n        unwrapModule: unwrapModule,\n        count: count,\n        isArray: isArray,\n        fetchText: fetchText,\n        load: function (name, localRequire, onLoad, config) {\n            var parts = parseParts(name),\n                dependencyName = parts[0],\n                moduleName = parts[1] || dependencyName;\n\n            var dependencyUrl = localRequire.toUrl(dependencyName);\n            var isPackage = !endsWith(dependencyUrl, dependencyName);\n            ngModule.serviceMap[dependencyName] = dependencyName;\n            var angularModule\n\n            if (config.isBuild) {\n                var noop = function() {};\n                angularModule = {\n                    requires: [],\n                    animation: noop,\n                    config: noop,\n                    constant: noop,\n                    controller: noop,\n                    directive: noop,\n                    factory: noop,\n                    filter: noop,\n                    provider: noop,\n                    run: noop,\n                    service: noop,\n                    value: noop,\n                    name: dependencyName\n                };\n            } else {\n                angularModule = angular.module(moduleName, []);\n                angularModule.dependencyName = dependencyName;\n            }   \n            fetchText(localRequire.toUrl(dependencyName + '.js'), function (moduleText) {\n\n                var depsMatch = moduleText.match(/define\\([\\s\\S]*?\\[([\\s\\S]*?)\\]/im);\n                if (depsMatch && depsMatch[1]) {\n                    var depsText = depsMatch[1];\n                    var deps = depsText.replace(/['|\"|\\s|\\n|\\r]/ig, '').split(',');\n                    for (var i = deps.length - 1; i >= 0; i--) {\n                        var dep = deps[i];\n                        if (dep.indexOf('ng-module!') === -1){\n                            deps.splice(i, 1);\n                        } else {\n                            var normalizedName = normalizeModule(dependencyName, dep, isPackage);\n                            deps[i] = normalizedName;\n                            angularModule.requires.push(normalizedName.split('!')[1]);\n                        }\n                    };\n                    localRequire(deps, function () {\n                        ngModule.finishLoad(localRequire, dependencyName, angularModule, onLoad);\n                    });\n                } else {\n                    ngModule.finishLoad(localRequire, dependencyName, angularModule, onLoad);\n                }\n            });\n            \n        },\n        finishLoad: function(localRequire, name, angularModule, onLoad) {\n            localRequire([name], function(module) {\n                    if (isFunction(module))\n                        module(angularModule);\n\n                    onLoad(angularModule);\n                });\n        },        \n        normalize: function (name, normalize) {\n            var parts = parseParts(name);\n            for (var i = parts.length - (parts.length > 1 ? 2 : 1); i >= 0; i--) {\n                parts[i] = normalize(parts[i]);\n            };\n            return parts.join('|');\n        },\n        writeFile: function (pluginName, moduleName, write, config) {\n            console.log('ng-module!write');\n        }\n    };\n\n    return ngModule;\n    //pluginBuilder: ''\n});\n",
 			"file": "src/ng-module.js",
-			"file_size": 9366,
-			"file_write_time": 130230697077104383,
 			"settings":
 			{
-				"buffer_size": 9049,
+				"buffer_size": 9120,
 				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "bower.json",
+			"settings":
+			{
+				"buffer_size": 656,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "package.json",
+			"settings":
+			{
+				"buffer_size": 1311,
+				"line_ending": "Unix"
 			}
 		},
 		{
@@ -130,7 +143,7 @@
 			"file": "src/ng.js",
 			"settings":
 			{
-				"buffer_size": 4098,
+				"buffer_size": 4001,
 				"line_ending": "Windows"
 			}
 		},
@@ -155,14 +168,6 @@
 			"settings":
 			{
 				"buffer_size": 118,
-				"line_ending": "Windows"
-			}
-		},
-		{
-			"file": "example/ng/factory.js",
-			"settings":
-			{
-				"buffer_size": 71,
 				"line_ending": "Windows"
 			}
 		},
@@ -375,15 +380,15 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 9049,
+						"buffer_size": 9120,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1329,
-								1329
+								975,
+								975
 							]
 						],
 						"settings":
@@ -393,13 +398,71 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 227.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
 				},
 				{
 					"buffer": 1,
+					"file": "bower.json",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 656,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								59,
+								99
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JSON.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "package.json",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1311,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								503,
+								503
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JSON.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 180.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 3,
 					"file": "test/unit/ng-module.js",
 					"semi_transient": false,
 					"settings":
@@ -427,7 +490,7 @@
 					"type": "text"
 				},
 				{
-					"buffer": 2,
+					"buffer": 4,
 					"file": "example/package1/index.js",
 					"semi_transient": false,
 					"settings":
@@ -454,34 +517,36 @@
 					"type": "text"
 				},
 				{
-					"buffer": 3,
+					"buffer": 5,
 					"file": "src/ng.js",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 4098,
+						"buffer_size": 4001,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								2222,
-								2222
+								0,
+								0
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 504.0,
+						"translation.y": 99.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
 				},
 				{
-					"buffer": 4,
+					"buffer": 6,
 					"file": "example/ng/provider.js",
 					"semi_transient": false,
 					"settings":
@@ -508,7 +573,7 @@
 					"type": "text"
 				},
 				{
-					"buffer": 5,
+					"buffer": 7,
 					"file": "example/module2.js",
 					"semi_transient": false,
 					"settings":
@@ -535,7 +600,7 @@
 					"type": "text"
 				},
 				{
-					"buffer": 6,
+					"buffer": 8,
 					"file": "example/ng/factory2.js",
 					"semi_transient": false,
 					"settings":
@@ -562,34 +627,7 @@
 					"type": "text"
 				},
 				{
-					"buffer": 7,
-					"file": "example/ng/factory.js",
-					"semi_transient": true,
-					"settings":
-					{
-						"buffer_size": 71,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								0,
-								0
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/JavaScript/JavaScript.tmLanguage"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"type": "text"
-				},
-				{
-					"buffer": 8,
+					"buffer": 9,
 					"file": "example/ng/provider2.js",
 					"semi_transient": false,
 					"settings":
@@ -616,7 +654,7 @@
 					"type": "text"
 				},
 				{
-					"buffer": 9,
+					"buffer": 10,
 					"file": "test/unit/ng.js",
 					"semi_transient": false,
 					"settings":
@@ -644,7 +682,7 @@
 					"type": "text"
 				},
 				{
-					"buffer": 10,
+					"buffer": 11,
 					"file": "example/module1.js",
 					"semi_transient": false,
 					"settings":

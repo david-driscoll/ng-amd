@@ -38,7 +38,7 @@ define(['ng-module'], function (ngModule) {
         finishLoad: function(dependencyName, moduleName, localRequire, isPackage, module, onLoad, config) {
             var angularModule;
 
-            if (config.isBuild && !OPTIMIZE) {
+            if (config.isBuild) {
                 onLoad();
                 return;
             } else {

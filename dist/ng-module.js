@@ -74,7 +74,7 @@ define([], function () {
 
     if (typeof process !== 'undefined' &&
                process.versions &&
-               !!process.versions.node && !OPTIMIZE) {
+               !!process.versions.node) {
         //Using special require.nodeRequire, something added by r.js.
         fs = require.nodeRequire('fs');
         fetchText = function (path, callback) {
@@ -121,7 +121,7 @@ define([], function () {
             xhr.send(null);
         };
         // end browser.js adapters
-    } else if (typeof Packages !== 'undefined' && !OPTIMIZE) {
+    } else if (typeof Packages !== 'undefined') {
         //Why Java, why is this so awkward?
         fetchText = function (path, callback) {
             var stringBuffer, line,
@@ -181,7 +181,7 @@ define([], function () {
 
             ngModule.serviceMap[dependencyName] = dependencyName;
             
-            if (config.isBuild && !OPTIMIZE) {
+            if (config.isBuild) {
                 angularModule = mockAngularModule(dependencyName);
             } else {
                 angularModule = angular.module(moduleName, []);
