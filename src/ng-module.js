@@ -179,12 +179,24 @@ define([], function () {
                 isPackage = !endsWith(dependencyUrl, dependencyName),
                 angularModule;
 
-            ngModule.serviceMap[dependencyName] = dependencyName;
+            ngModule.serviceMap[dependencyName] = ngModule.serviceMap[moduleName] = dependencyName;
             
             if (config.isBuild) {
                 angularModule = mockAngularModule(dependencyName);
             } else {
                 angularModule = angular.module(moduleName, []);
+				angularModule.config(['$controllerProvider', '$compileProvider', '$filterProvider', '$provide',
+					function($controllerProvider, $compileProvider, $filterProvider, $provide) {
+						angularModule.controller = $controllerProvider.register;
+						angularModule.directive = $compileProvider.directive;
+						angularModule.filter = $filterProvider.register;
+						angularModule.factory = $provide.factory;
+						angularModule.service = $provide.service;
+						angularModule.provider = $provide.provider;
+						angularModule.value = $provide.value;
+						angularModule.constant = $provide.constant;
+						angularModule.decorator = $provide.decorator;
+					}]);
                 angularModule.dependencyName = dependencyName;
             }
             fetchText(localRequire.toUrl(dependencyName + '.js'), function (moduleText) {

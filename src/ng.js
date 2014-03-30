@@ -21,14 +21,18 @@ define(['ng-module'], function (ngModule) {
                 dependencyUrl = localRequire.toUrl(dependencyName),
                 isPackage = !endsWith(dependencyUrl, dependencyName),
                 deps = [dependencyName];
+			parts = parts[0].split('/');
 
             for (var i = parts.length - 2; i >= 0; i--) {
-                var potentialParent = parts.slice(0, i+1).join('/');
-                if (ngModule.serviceMap[potentialParent])
-                {
-                    moduleName = potentialParent;
-                    break;
-                }
+				var potentialParents = parts.slice(0, i+1);
+				for (var z = potentialParents.length - 1; z >= 0; z--) {
+					var potentialParent = potentialParents.slice(z).join('/');
+					if (ngModule.serviceMap[potentialParent])
+					{
+						moduleName = potentialParent;
+						break;
+					}
+				}
             }
 
             localRequire(deps, function(module) {
