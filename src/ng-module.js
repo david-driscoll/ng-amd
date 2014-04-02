@@ -234,9 +234,12 @@ define([], function () {
         },
         normalize: function (name, normalize) {
             var parts = parseParts(name);
-            for (var i = parts.length - (parts.length > 1 ? 2 : 1); i >= 0; i--) {
+			console.log(name, parts);
+			//parts[0] = normalize(parts[0]);
+            /*for (var i = parts.length - (parts.length > 1 ? 2 : 1); i >= 0; i--) {
                 parts[i] = normalize(parts[i]);
-            }
+            }*/
+			console.log(parts);
             return parts.join('|');
         }
         // Needed? doesn't appear to be.
