@@ -199,6 +199,10 @@ define(['angular'], function () {
 					}]);
                 angularModule.dependencyName = dependencyName;
             }
+			if (dependencyUrl === 'empty:') {
+				onLoad();
+				return;
+			}
             fetchText(localRequire.toUrl(dependencyName + '.js'), function (moduleText) {
 
                 var depsMatch = moduleText.match(/define\([\s\S]*?\[([\s\S]*?)\]/im);
