@@ -1,7 +1,7 @@
 /**
  * Angular-module loader plugin
  */
-define([], function () {
+define(['angular'], function () {
     'use strict';
     function parseParts(name) { return name.split('|'); }
     function unwrapModule(name, module) { return (typeof module === 'function' ? module(name) : module); }
