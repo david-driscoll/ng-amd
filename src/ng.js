@@ -35,6 +35,10 @@ define(['ng-module'], function (ngModule) {
 				}
             }
 
+			if (dependencyUrl === 'empty:') {
+				onLoad();
+				return;
+			}
             localRequire(deps, function(module) {
                 ng.finishLoad(dependencyName, moduleName, localRequire, isPackage, module, onLoad, config);
             });
